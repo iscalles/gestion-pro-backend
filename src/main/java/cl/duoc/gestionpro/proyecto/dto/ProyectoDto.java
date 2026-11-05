@@ -14,6 +14,7 @@ public record ProyectoDto(
         String descripcion,
         Long responsableId,
         String responsable,
+        Long calendarioId,
         LocalDate fechaInicio,
         LocalDate fechaTermino,
         BigDecimal presupuesto,
@@ -22,7 +23,7 @@ public record ProyectoDto(
 
     public static ProyectoDto de(Proyecto p) {
         return new ProyectoDto(p.getId(), p.getCodigo(), p.getNombre(), p.getDescripcion(),
-                p.getResponsable().getId(), p.getResponsable().getNombre(),
+                p.getResponsable().getId(), p.getResponsable().getNombre(), p.getCalendarioId(),
                 p.getFechaInicioPlan(), p.getFechaTerminoPlan(), p.getPresupuesto(), p.getEstado(), p.getAvance());
     }
 }

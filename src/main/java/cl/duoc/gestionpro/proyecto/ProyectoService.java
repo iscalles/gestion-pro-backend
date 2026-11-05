@@ -9,6 +9,8 @@ import cl.duoc.gestionpro.comun.RecursoNoEncontradoException;
 import cl.duoc.gestionpro.comun.ReglaNegocioException;
 import cl.duoc.gestionpro.proyecto.dto.ProyectoDto;
 import cl.duoc.gestionpro.proyecto.dto.ProyectoRequest;
+import cl.duoc.gestionpro.planificacion.ActividadRepository;
+import cl.duoc.gestionpro.recalculo.RecalculoService;
 import cl.duoc.gestionpro.seguridad.UsuarioRepository;
 
 @Service
@@ -16,10 +18,15 @@ public class ProyectoService {
 
     private final ProyectoRepository proyectos;
     private final UsuarioRepository usuarios;
+    private final ActividadRepository actividades;
+    private final RecalculoService recalculo;
 
-    public ProyectoService(ProyectoRepository proyectos, UsuarioRepository usuarios) {
+    public ProyectoService(ProyectoRepository proyectos, UsuarioRepository usuarios, ActividadRepository actividades,
+            RecalculoService recalculo) {
         this.proyectos = proyectos;
         this.usuarios = usuarios;
+        this.actividades = actividades;
+        this.recalculo = recalculo;
     }
 
     @Transactional(readOnly = true)
@@ -47,6 +54,12 @@ public class ProyectoService {
     public ProyectoDto actualizar(Long id, ProyectoRequest req) {
         var p = buscar(id);
         aplicar(p, req);
+        if (p.getEstado() == EstadoProyecto.TERMINADO && actividades.existsAbiertasEnProyecto(id)) {
+            throw new ReglaNegocioException("ACTIVIDADES_ABIERTAS",
+                    "No puedes cerrar el proyecto: tiene actividades sin terminar.");
+        }
+        proyectos.flush();
+        recalculo.recalcularProyecto(id); // la fecha de inicio o el calendario pueden haber cambiado
         return ProyectoDto.de(p);
     }
 
@@ -63,8 +76,7 @@ public class ProyectoService {
         if (req.estado() != null) {
             p.setEstado(req.estado());
         }
-        // TODO: al terminar el módulo de actividades, impedir TERMINADO con actividades abiertas
-        // o solicitudes de cambio sin cerrar, y llamar al servicio de recálculo.
+        // TODO (Módulo 8): impedir TERMINADO con solicitudes de cambio sin cerrar.
     }
 
     private Proyecto buscar(Long id) {
