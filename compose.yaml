@@ -1,0 +1,23 @@
+# Oracle Database 23ai Free para desarrollo local.
+#   docker compose up -d      (la primera vez tarda 1-2 minutos)
+# Crea el usuario de aplicación gestion/gestion en FREEPDB1.
+services:
+  oracle:
+    image: ghcr.io/gvenzl/oracle-free:23-slim-faststart
+    container_name: gestion-pro-oracle
+    ports:
+      - "1521:1521"
+    environment:
+      ORACLE_PASSWORD: Admin123
+      APP_USER: gestion
+      APP_USER_PASSWORD: gestion
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  oracle-data:
