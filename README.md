@@ -36,7 +36,7 @@ cl.duoc.gestionpro
 ├─ proyecto/        Módulo 1 (implementado: listar, obtener, crear, editar)
 ├─ planificacion/   Módulo 3 (implementado): actividades, dependencias, calendario, motor de programación
 ├─ recurso/         Módulo 5: profesionales, recursos, asignaciones, costos, sobreasignación
-├─ hito/            Módulo 6
+├─ hito/            Módulo 6 (por ahora lectura para la Carta Gantt: GET /api/proyectos/{id}/hitos)
 ├─ kpi/             Módulos 7 y 9: KPI configurables, semáforo, histórico
 ├─ cambio/          Módulo 8: solicitudes, diez etapas, línea base, trazabilidad
 ├─ tablero/         los dos tableros
@@ -53,6 +53,7 @@ El Módulo 2 (EDT) no se construye: la jerarquía etapa → actividad → subact
 - `V2__catalogos.sql`: las diez etapas del cambio y las variables disponibles para las fórmulas de KPI.
 - `V3__datos_demo.sql`: usuarios, calendario 2026-2027 y cuatro proyectos.
 - `V4__planificacion_demo.sql`: 5 profesionales y la planificación de PRY-2026-01 (4 etapas, 12 actividades, 20 subactividades, 25 dependencias con FS, SS, FF y SF). Sin fechas planificadas: al arrancar, `ProgramacionInicial` las calcula con el motor.
+- `V5__hitos_demo.sql`: los 6 hitos de PRY-2026-01 asociados a actividades (dos cumplidos, uno de ellos fuera de plazo; uno vencido; tres pendientes).
 
 Hibernate no modifica el esquema (`ddl-auto: none`); cualquier cambio va en una migración nueva `V4__…`, nunca editando una ya aplicada.
 
@@ -72,6 +73,7 @@ Al mapear entidades:
 | GET / PUT | `/api/calendarios[/{id}]` | días laborables y horas por día (PUT solo administrador) |
 | POST / DELETE | `/api/calendarios/{id}/dias-no-laborables[/{diaId}]` | feriados (solo administrador) |
 | GET | `/api/profesionales` | responsables para elegir |
+| GET | `/api/proyectos/{id}/hitos` | hitos con estado calculado (ATRASADO si vence pendiente), fecha prevista (término más tardío de sus actividades), `enRiesgo` y actividades |
 
 Toda modificación recalcula el proyecto en la misma transacción y responde `{ plan, recalculadas }`, donde `recalculadas` son las actividades cuyas fechas se movieron. Cambiar el calendario reprograma todos los proyectos que lo usan. El administrador trabaja en todos los proyectos; el usuario de proyecto, en los que dirige o integra.
 
