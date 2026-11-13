@@ -28,15 +28,20 @@ public record ActividadDto(
         LocalDate fechaTerminoReal,
         BigDecimal avance,
         boolean esHoja,
-        boolean atrasada) {
+        boolean atrasada,
+        /** Código EDT derivado del orden del árbol (1, 1.2, 1.2.3). */
+        String codigoEdt,
+        BigDecimal costoPlan,
+        BigDecimal costoReal) {
 
-    public static ActividadDto de(Actividad a, int nivel, boolean esHoja, LocalDate hoy) {
+    public static ActividadDto de(Actividad a, int nivel, boolean esHoja, LocalDate hoy, String codigoEdt,
+            BigDecimal costoPlan, BigDecimal costoReal) {
         var r = a.getResponsable();
         boolean atrasada = a.getAvance().compareTo(BigDecimal.valueOf(100)) < 0
                 && a.getFechaTerminoPlan() != null && a.getFechaTerminoPlan().isBefore(hoy);
         return new ActividadDto(a.getId(), a.getPadreId(), a.getTipo(), nivel, a.getOrden(), a.getNombre(),
                 a.getDescripcion(), r == null ? null : r.getId(), r == null ? null : r.getNombre(),
                 a.getDuracionPlan(), a.getDuracionReal(), a.getFechaInicioPlan(), a.getFechaTerminoPlan(),
-                a.getFechaInicioReal(), a.getFechaTerminoReal(), a.getAvance(), esHoja, atrasada);
+                a.getFechaInicioReal(), a.getFechaTerminoReal(), a.getAvance(), esHoja, atrasada, codigoEdt, costoPlan, costoReal);
     }
 }

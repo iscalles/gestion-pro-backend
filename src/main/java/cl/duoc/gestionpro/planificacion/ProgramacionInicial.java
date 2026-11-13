@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -15,6 +16,7 @@ import cl.duoc.gestionpro.recalculo.RecalculoService;
  * (las cargadas por migraciones SQL, que no pasan por el motor).
  */
 @Component
+@Order(1)
 public class ProgramacionInicial implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(ProgramacionInicial.class);
@@ -35,8 +37,12 @@ public class ProgramacionInicial implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         for (Long id : actividades.proyectosSinProgramar()) {
-            tx.executeWithoutResult(s -> recalculo.recalcularProyecto(id));
-            log.info("Proyecto {} programado al iniciar", proyectos.findById(id).map(p -> p.getCodigo()).orElse("?"));
+            try {
+                tx.executeWithoutResult(s -> recalculo.recalcularProyecto(id));
+                log.info("Proyecto {} programado al iniciar", proyectos.findById(id).map(p -> p.getCodigo()).orElse("?"));
+            } catch (RuntimeException e) {
+                log.error("No se pudo programar el proyecto {} al iniciar", id, e);
+            }
         }
     }
 }

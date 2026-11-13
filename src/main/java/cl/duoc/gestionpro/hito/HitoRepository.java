@@ -12,6 +12,8 @@ public interface HitoRepository extends JpaRepository<Hito, Long> {
     @EntityGraph(attributePaths = "responsable")
     List<Hito> findByProyectoIdOrderByFechaComprometidaAscCodigoAsc(Long proyectoId);
 
+    boolean existsByProyectoIdAndCodigo(Long proyectoId, String codigo);
+
     /** Pares (hito_id, actividad_id) del proyecto. */
     @Query(value = "select hito_id, actividad_id from hito_actividad where proyecto_id = :proyectoId", nativeQuery = true)
     List<Object[]> actividadesDeHitos(@Param("proyectoId") Long proyectoId);

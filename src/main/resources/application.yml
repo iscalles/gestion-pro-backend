@@ -17,6 +17,11 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  servlet:
+    multipart:
+      # Evidencias de hitos y solicitudes de cambio (el servicio también valida 10 MB).
+      max-file-size: 10MB
+      max-request-size: 11MB
 
 server:
   port: 8080

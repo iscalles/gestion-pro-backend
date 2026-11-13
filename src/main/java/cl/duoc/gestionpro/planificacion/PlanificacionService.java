@@ -30,6 +30,9 @@ import cl.duoc.gestionpro.proyecto.Proyecto;
 import cl.duoc.gestionpro.proyecto.ProyectoRepository;
 import cl.duoc.gestionpro.recalculo.CambioFecha;
 import cl.duoc.gestionpro.recalculo.RecalculoService;
+import cl.duoc.gestionpro.recurso.AsignacionProfesionalRepository;
+import cl.duoc.gestionpro.recurso.AsignacionRecursoRepository;
+import cl.duoc.gestionpro.recurso.CostoService;
 import cl.duoc.gestionpro.recurso.ProfesionalRepository;
 
 /**
@@ -47,9 +50,17 @@ public class PlanificacionService {
     private final DependenciaRepository dependencias;
     private final ProfesionalRepository profesionales;
     private final RecalculoService recalculo;
+    private final CostoService costos;
+    private final AsignacionProfesionalRepository asignacionesProfesional;
+    private final AsignacionRecursoRepository asignacionesRecurso;
 
     public PlanificacionService(ProyectoRepository proyectos, ActividadRepository actividades,
-            DependenciaRepository dependencias, ProfesionalRepository profesionales, RecalculoService recalculo) {
+            DependenciaRepository dependencias, ProfesionalRepository profesionales, RecalculoService recalculo,
+            CostoService costos, AsignacionProfesionalRepository asignacionesProfesional,
+            AsignacionRecursoRepository asignacionesRecurso) {
+        this.costos = costos;
+        this.asignacionesProfesional = asignacionesProfesional;
+        this.asignacionesRecurso = asignacionesRecurso;
         this.proyectos = proyectos;
         this.actividades = actividades;
         this.dependencias = dependencias;
@@ -62,7 +73,7 @@ public class PlanificacionService {
         Proyecto p = proyectos.findById(proyectoId).orElseThrow(() -> new RecursoNoEncontradoException("Proyecto", proyectoId));
         List<Actividad> lista = actividades.findByProyectoIdOrderByOrdenAscIdAsc(proyectoId);
         List<DependenciaDto> deps = dependencias.findByProyectoIdOrderByIdAsc(proyectoId).stream().map(DependenciaDto::de).toList();
-        return new PlanDto(p.getId(), p.getCalendarioId(), p.getFechaInicioPlan(), enOrdenDeArbol(lista), deps);
+        return new PlanDto(p.getId(), p.getCalendarioId(), p.getFechaInicioPlan(), enOrdenDeArbol(proyectoId, lista), deps);
     }
 
     // ---------------------------------------------------------------- actividades
@@ -74,6 +85,11 @@ public class PlanificacionService {
         if (padre != null && esHoja(padre) && dependencias.existsByPredecesoraIdOrSucesoraId(padre.getId(), padre.getId())) {
             throw new ReglaNegocioException("PADRE_CON_DEPENDENCIAS", "«" + padre.getNombre()
                     + "» tiene dependencias. Quítalas antes de agregarle subactividades: los vínculos se definen entre elementos sin hijos.");
+        }
+        if (padre != null && esHoja(padre) && (asignacionesProfesional.existsByActividadId(padre.getId())
+                || asignacionesRecurso.existsByActividadId(padre.getId()))) {
+            throw new ReglaNegocioException("PADRE_CON_RECURSOS", "«" + padre.getNombre()
+                    + "» tiene profesionales o recursos asignados. Muévelos antes de agregarle subactividades: los recursos se asignan a elementos sin hijos.");
         }
         var a = new Actividad();
         a.setProyectoId(proyectoId);
@@ -244,41 +260,14 @@ public class PlanificacionService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Dependencia", id));
     }
 
-    /** Recorrido en profundidad: cada etapa seguida de sus actividades y subactividades. */
-    private static List<ActividadDto> enOrdenDeArbol(List<Actividad> lista) {
-        Map<Long, List<Actividad>> hijos = new HashMap<>();
-        List<Actividad> raices = new ArrayList<>();
-        Comparator<Actividad> porOrden = Comparator.comparing(Actividad::getOrden).thenComparing(Actividad::getId);
-        for (Actividad a : lista) {
-            if (a.getPadreId() == null) {
-                raices.add(a);
-            } else {
-                hijos.computeIfAbsent(a.getPadreId(), k -> new ArrayList<>()).add(a);
-            }
-        }
+    /** Recorrido en profundidad (cada etapa seguida de sus actividades y subactividades), con código EDT y costos. */
+    private List<ActividadDto> enOrdenDeArbol(Long proyectoId, List<Actividad> lista) {
         LocalDate hoy = LocalDate.now(ZONA);
-        List<ActividadDto> salida = new ArrayList<>(lista.size());
-        Set<Long> visitados = new HashSet<>();
-        raices.sort(porOrden);
-        Deque<Object[]> pila = new ArrayDeque<>();
-        for (int i = raices.size() - 1; i >= 0; i--) {
-            pila.push(new Object[] { raices.get(i), 0 });
-        }
-        while (!pila.isEmpty()) {
-            Object[] item = pila.pop();
-            Actividad a = (Actividad) item[0];
-            int nivel = (int) item[1];
-            if (!visitados.add(a.getId())) {
-                continue;
-            }
-            List<Actividad> h = hijos.getOrDefault(a.getId(), List.of());
-            salida.add(ActividadDto.de(a, nivel, h.isEmpty(), hoy));
-            List<Actividad> ordenados = new ArrayList<>(h);
-            ordenados.sort(porOrden);
-            for (int i = ordenados.size() - 1; i >= 0; i--) {
-                pila.push(new Object[] { ordenados.get(i), nivel + 1 });
-            }
-        }
-        return salida;
+        ArbolActividades arbol = ArbolActividades.de(lista);
+        CostoService.Costos c = costos.calcular(proyectoId, hoy);
+        return arbol.enOrden().stream().map(a -> {
+            var ca = c.de(a.getId());
+            return ActividadDto.de(a, arbol.nivel(a.getId()), arbol.esHoja(a.getId()), hoy, arbol.codigo(a.getId()), ca.plan(), ca.real());
+        }).toList();
     }
 }

@@ -91,6 +91,7 @@ public class SecurityConfig {
         cfg.setAllowedOrigins(origenes);
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        cfg.setExposedHeaders(List.of("Content-Disposition")); // nombre del archivo al descargar evidencias
         var source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cfg);
         return source;

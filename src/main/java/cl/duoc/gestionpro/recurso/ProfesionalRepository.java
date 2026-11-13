@@ -7,4 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ProfesionalRepository extends JpaRepository<Profesional, Long> {
 
     List<Profesional> findByActivoTrueOrderByNombreAsc();
+
+    List<Profesional> findAllByOrderByNombreAsc();
+
+    boolean existsByTipoProfesionalId(Long tipoProfesionalId);
 }

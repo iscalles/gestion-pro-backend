@@ -7,6 +7,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -63,5 +67,26 @@ public class ManejadorErrores {
     ResponseEntity<ApiError> prohibido(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiError.de(403, "SIN_PERMISO", "Tu rol no permite esta acción."));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ApiError> archivoGrande(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.unprocessableEntity().body(ApiError.de(422, "ARCHIVO_GRANDE", "El archivo supera el máximo de 10 MB."));
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    ResponseEntity<ApiError> concurrencia(ObjectOptimisticLockingFailureException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiError.de(409, "MODIFICADO_POR_OTRO",
+                "Otra persona modificó estos datos mientras los editabas. Recarga la página e inténtalo de nuevo."));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ApiError> parametro(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.badRequest().body(ApiError.de(400, "PARAMETRO_INVALIDO", "El valor de «" + ex.getName() + "» no es válido."));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<ApiError> cuerpo(HttpMessageNotReadableException ex) {
+        return ResponseEntity.badRequest().body(ApiError.de(400, "CUERPO_INVALIDO", "La solicitud tiene un formato o un valor no válido."));
     }
 }

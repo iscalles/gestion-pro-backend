@@ -2,6 +2,7 @@ package cl.duoc.gestionpro.proyecto.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 import cl.duoc.gestionpro.proyecto.EstadoProyecto;
 import jakarta.validation.constraints.AssertTrue;
@@ -19,7 +20,9 @@ public record ProyectoRequest(
         @NotNull(message = "Indica la fecha de inicio.") LocalDate fechaInicio,
         @NotNull(message = "Indica la fecha de término.") LocalDate fechaTermino,
         @NotNull(message = "Indica el presupuesto.") @PositiveOrZero(message = "El presupuesto no puede ser negativo.") BigDecimal presupuesto,
-        EstadoProyecto estado) {
+        EstadoProyecto estado,
+        /** Usuarios de proyecto que participan (además del responsable). Nulo = no cambiar. */
+        List<Long> miembroIds) {
 
     @AssertTrue(message = "La fecha de término debe ser igual o posterior al inicio.")
     public boolean isFechasValidas() {
