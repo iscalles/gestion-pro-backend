@@ -6,12 +6,16 @@ API del proyecto integrador de Gestión de Proyectos de Software (Duoc UC). El f
 
 ## Levantar en local
 
-Requiere Java 21 y Docker.
+Para usar la app completa (base de datos, API y pantallas), sigue la guía paso a paso del [README del frontend](https://github.com/iscalles/gestion-pro#levantar-la-app-completa). Aquí está solo la parte del backend.
+
+Requiere Java 21 (JDK) y [Docker Desktop](https://www.docker.com/products/docker-desktop/) abierto. La primera vez se necesita internet para descargar la imagen de Oracle y las dependencias de Maven.
 
 ```bash
 docker compose up -d        # Oracle Free; la primera vez tarda 1-2 minutos
 ./mvnw spring-boot:run      # API en http://localhost:8080
 ```
+
+En Windows con PowerShell, el segundo comando es `.\mvnw spring-boot:run`. Si el backend no logra conectarse a la base, Oracle aún está iniciando: espera a que `docker ps` muestre `gestion-pro-oracle` como `(healthy)` y vuelve a ejecutarlo. Está listo cuando el log muestra `Started GestionProBackendApplication`.
 
 Al arrancar, Flyway crea el esquema y carga el caso de prueba; luego `ProgramacionInicial` calcula las fechas planificadas y los costos, e `IndicadoresIniciales` guarda la línea base LB-01 y la primera medición de cada KPI. Documentación interactiva en http://localhost:8080/swagger-ui.html.
 
@@ -21,6 +25,12 @@ Cuentas de demostración (contraseña `demo1234`):
 |---|---|
 | `admin@gestionpro.cl` | Administrador |
 | `usuario@gestionpro.cl` | Usuario de proyecto (miembro de PRY-2026-01) |
+
+### Detener sin perder datos
+
+- `Ctrl+C` detiene el backend; `docker compose stop` detiene Oracle.
+- Para volver: `docker compose start` y `./mvnw spring-boot:run`.
+- Los datos quedan en el volumen de Docker `oracle-data`: reiniciar el backend, Docker o el equipo no los borra, y al arrancar no se vuelve a cargar el caso de prueba si ya existe. Solo `docker compose down -v` o el script de [Volver al caso de prueba original](#volver-al-caso-de-prueba-original) los devuelven al caso de prueba original.
 
 ### Si el puerto 8080 está ocupado
 
